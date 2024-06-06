@@ -2,6 +2,10 @@ import React, { useEffect, useState } from 'react';
 import './App.css';
 import Login from './components/js/Login';
 import { getTokenFromUrl } from './spotify';
+import Body from './components/js/Body';
+import SpotifyWebApi from "spotify-web-api-js";
+
+export const spotify = new SpotifyWebApi();
 
 function App() {
   const [token, setToken] = useState(null);
@@ -14,6 +18,8 @@ function App() {
 
     if (_token) {
       setToken(_token);
+
+      spotify.setAccessToken(_token);
     }
 
     //console.log("TOKEN ", token);
@@ -23,7 +29,7 @@ function App() {
     <div className="App">
       {
         token ? (
-          <h1>Logged In</h1>
+          <Body />
         ) : (
           <Login />
         )

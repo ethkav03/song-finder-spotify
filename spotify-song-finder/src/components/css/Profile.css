@@ -1,0 +1,20 @@
+.profile {
+    justify-content: right;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px;
+    text-decoration: none;
+}
+
+.profile > img {
+    height: 64px;
+    width: 64px;
+    border-radius: 32px;
+    outline: white 2px solid;
+}
+
+.profile > h1 {
+    font-size: x-large;
+    color: white;
+}
