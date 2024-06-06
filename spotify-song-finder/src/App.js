@@ -3,9 +3,7 @@ import './App.css';
 import Login from './components/js/Login';
 import { getTokenFromUrl } from './spotify';
 import Body from './components/js/Body';
-import SpotifyWebApi from "spotify-web-api-js";
-
-export const spotify = new SpotifyWebApi();
+import { spotify } from './spotify';
 
 function App() {
   const [token, setToken] = useState(null);

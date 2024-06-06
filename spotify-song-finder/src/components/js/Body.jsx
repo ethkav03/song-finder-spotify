@@ -1,12 +1,17 @@
 import React from 'react';
 import Navbar from './Navbar.jsx';
 import '../css/Body.css';
+import Songs from './Songs.jsx';
+import Artists from './Artists.jsx';
 
 function Body() {
   return (
     <div className='body'>
         <Navbar />
-        <h1>Logged In</h1>
+        <div>
+          <Songs />
+          <Artists />
+        </div>
     </div>
   )
 }

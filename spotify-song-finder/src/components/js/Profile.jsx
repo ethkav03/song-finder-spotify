@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import '../css/Profile.css';
-import { spotify } from '../../App';
+import { spotify } from '../../spotify';
 
 function Profile() {
     const [profile, setProfile] = useState(null);
+    const notprofile = !profile
 
     useEffect(() => {
         spotify.getMe()
@@ -13,13 +14,13 @@ function Profile() {
               setProfile(user);
             }
         })
-    }, [!profile]);
+    }, [notprofile]);
 
   if (profile) {
     return (
       <a className='profile' href={profile.external_urls.spotify} target='blank'>
           <h1>{profile.display_name}</h1>
-          <img src={profile.images[0].url} />
+          <img src={profile.images[0].url} alt='Profile' />
       </a>
     )
   }
