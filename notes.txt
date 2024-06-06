@@ -1,0 +1,8 @@
+1. Get access token:
+url -X POST "https://accounts.spotify.com/api/token"
+    -H "Content-Type: application/x-www-form-urlencoded"
+    -d "grant_type=client_credentials&client_id=cfd886f580ad40769815707a94e0b83a&client_secret=a1fdf483ad4c44dc9978600ab15ff68f"
+
+2 Get artist:
+curl "https://api.spotify.com/v1/artists/4H4M0Y4cN39zIVDHvdW53x?si=AfqXo6XmRIGyt_zM_ljZMQ"
+    -H "Authorization: Bearer  BQCRhu1u58WGpiR1QMnug8ildvJ1OYDtJrHqU2E8-49-rjp2yerTcVLixVmxY_-RFP9TLL2D1PhiVHP0yeAWTiBvgrCe65zLR0O07iXOOzYZD6kh1pI"
