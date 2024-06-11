@@ -1,6 +1,13 @@
 .recommendationsList {
+    justify-content: center;
+    align-items: center;
     display: flex;
     height: 250px;
     overflow: auto;
     gap: 10px;
+}
+
+.recommendationsList > button {
+    width: 80px;
+    height: 20px
 }
