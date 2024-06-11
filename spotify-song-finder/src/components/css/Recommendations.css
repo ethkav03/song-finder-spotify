@@ -1,0 +1,6 @@
+.recommendationsList {
+    display: flex;
+    height: 250px;
+    overflow: auto;
+    gap: 10px;
+}
