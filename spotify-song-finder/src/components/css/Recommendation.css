@@ -1,6 +1,6 @@
 .recommendation {
     align-content: center;
-    min-width: 200px;
+    width: 200px;
     height: 200px;
     padding: 10px;
     background-color: gray;

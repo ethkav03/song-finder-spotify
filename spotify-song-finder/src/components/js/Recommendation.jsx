@@ -1,5 +1,6 @@
 import React from 'react';
 import '../css/Recommendation.css';
+import { spotify } from '../../spotify';
 
 function Recommendation(props) {
     let track = props.track;

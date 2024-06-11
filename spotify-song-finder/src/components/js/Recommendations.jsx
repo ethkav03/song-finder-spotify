@@ -5,6 +5,7 @@ import '../css/Recommendations.css';
 
 function Recommendations(props) {
     const [recommendations, setRecommendations] = useState(null);
+    const [index, setIndex] = useState(0);
 
     let artists = props.artists;
 
@@ -24,10 +25,10 @@ function Recommendations(props) {
             .catch(err => console.error(err));
     }, [params]);
 
-    const getRecommendations = () => {
-        return recommendations.map(recommendation => (
-            <Recommendation key={recommendation.id} track={recommendation} />
-        ))
+    const saveTrack = () => {
+        //console.log(track.id);
+        spotify.addToMySavedTracks([recommendations[index].id])
+        .catch((err) => console.log(err));
     }
 
     if (recommendations) {
@@ -35,7 +36,12 @@ function Recommendations(props) {
             <div className='recommendations'>
                 <h1>Song Recommendations</h1>
                 <div className='recommendationsList'>
-                    {getRecommendations()}
+                    <button onClick={() => setIndex(index + 1)}>Discard</button>
+                    <Recommendation key={recommendations[index].id} track={recommendations[index]} />
+                    <button onClick={() => {
+                        setIndex(index + 1);
+                        saveTrack();
+                    }}>Save</button>
                 </div>
             </div>
         )
