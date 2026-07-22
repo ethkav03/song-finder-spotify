@@ -14,28 +14,37 @@ function SwipeDeck({ onAuthError }) {
         setIsPreviewPlaying(false);
     }, []);
 
-    // Reset any playing preview whenever the front card changes.
+    const playPreview = useCallback((url) => {
+        audioRef.current?.pause();
+        const audio = new Audio(url);
+        audio.onended = () => setIsPreviewPlaying(false);
+        audioRef.current = audio;
+
+        // Browsers block autoplay-with-sound without a recent user gesture on
+        // the page; if that happens this just silently stays paused and the
+        // tap-to-play button still works normally.
+        audio.play()
+            .then(() => setIsPreviewPlaying(true))
+            .catch(() => setIsPreviewPlaying(false));
+    }, []);
+
+    // Auto-play a preview of each new card as it becomes the front card.
     useEffect(() => {
         stopPreview();
-    }, [current?.id, stopPreview]);
+        if (current?.preview_url) {
+            playPreview(current.preview_url);
+        }
+    }, [current?.id, current?.preview_url, stopPreview, playPreview]);
 
     useEffect(() => stopPreview, [stopPreview]);
 
     const togglePreview = () => {
         if (!current?.preview_url) return;
 
-        if (!audioRef.current || audioRef.current.src !== current.preview_url) {
-            audioRef.current?.pause();
-            audioRef.current = new Audio(current.preview_url);
-            audioRef.current.onended = () => setIsPreviewPlaying(false);
-        }
-
         if (isPreviewPlaying) {
-            audioRef.current.pause();
-            setIsPreviewPlaying(false);
+            stopPreview();
         } else {
-            audioRef.current.play();
-            setIsPreviewPlaying(true);
+            playPreview(current.preview_url);
         }
     };
 

@@ -65,10 +65,12 @@ before falling back to the login screen.
   commits the swipe and animates the card off-screen; releasing short of that
   springs it back to center. Direction can also be triggered programmatically
   (used by the Like/Nope buttons and arrow keys) via a small imperative
-  handle. Shows a 30-second preview play button when Spotify provides one for
-  the track (`preview_url` isn't populated for every track).
+  handle. Shows a 30-second preview play/pause button when Spotify provides
+  one for the track (`preview_url` isn't populated for every track).
 - **`src/components/js/SwipeDeck.jsx`** — renders the current + next card as a
-  stack, wires up the buttons/keyboard shortcuts (← skip, → like), and saves
+  stack, auto-plays each new card's preview as it comes to the front (falls
+  back to tap-to-play if the browser blocks autoplay before you've interacted
+  with the page), wires up the buttons/keyboard shortcuts (← skip, → like), and saves
   liked tracks to the user's library via `addToMySavedTracks` when a swipe
   lands.
 - **`src/App.js`** — handles the OAuth redirect (code exchange), persists
