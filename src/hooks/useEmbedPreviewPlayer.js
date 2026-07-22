@@ -35,7 +35,11 @@ export default function useEmbedPreviewPlayer(containerEl) {
     const [isPlaying, setIsPlaying] = useState(false);
     const controllerRef = useRef(null);
     const creatingRef = useRef(false);
-    const loadedUriRef = useRef(null);
+    // What we currently want playing - updated immediately on every call.
+    const desiredUriRef = useRef(null);
+    // What the live controller (if any) is actually pointed at - only
+    // updated once a URI has genuinely been handed to a real controller.
+    const controllerUriRef = useRef(null);
 
     useEffect(() => {
         return () => {
@@ -44,44 +48,50 @@ export default function useEmbedPreviewPlayer(containerEl) {
         };
     }, []);
 
-    const loadAndPlay = useCallback((trackId) => {
-        const uri = `spotify:track:${trackId}`;
+    // Points the (already-created) controller at whatever's currently desired.
+    const syncController = useCallback(() => {
+        const controller = controllerRef.current;
+        const uri = desiredUriRef.current;
+        if (!controller || !uri) return;
 
-        if (loadedUriRef.current === uri) {
-            controllerRef.current?.play();
-            return;
+        if (controllerUriRef.current !== uri) {
+            controllerUriRef.current = uri;
+            controller.loadUri(uri);
         }
-        loadedUriRef.current = uri;
+        controller.play();
+    }, []);
+
+    const loadAndPlay = useCallback((trackId) => {
+        desiredUriRef.current = `spotify:track:${trackId}`;
 
         if (controllerRef.current) {
-            controllerRef.current.loadUri(uri);
-            controllerRef.current.play();
+            syncController();
             return;
         }
 
+        // No container to mount into yet (e.g. the very first render, before
+        // the callback ref attaches) - desiredUriRef is already up to date,
+        // so whichever call finds a container ready will pick it up.
         if (creatingRef.current || !containerEl) return;
         creatingRef.current = true;
 
         loadIframeApi().then((IFrameAPI) => {
-            // A newer track may have been requested while this was loading;
-            // always create pointed at whatever's most current.
-            const initialUri = loadedUriRef.current || uri;
             IFrameAPI.createController(
                 containerEl,
-                { uri: initialUri, width: '100%', height: '80' },
+                { uri: desiredUriRef.current, width: '100%', height: '80' },
                 (controller) => {
                     controllerRef.current = controller;
+                    controllerUriRef.current = desiredUriRef.current;
                     controller.addListener('playback_update', (e) => {
                         setIsPlaying(!e.data.isPaused && !e.data.isBuffering);
                     });
-                    if (loadedUriRef.current !== initialUri) {
-                        controller.loadUri(loadedUriRef.current);
-                    }
-                    controller.play();
+                    // Picks up anything requested while the API/controller
+                    // was still loading, since desiredUriRef is read fresh here.
+                    syncController();
                 }
             );
         });
-    }, [containerEl]);
+    }, [containerEl, syncController]);
 
     const pause = useCallback(() => controllerRef.current?.pause(), []);
     const togglePlay = useCallback(() => controllerRef.current?.togglePlay(), []);
