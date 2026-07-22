@@ -2,17 +2,19 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import './App.css';
 import Login from './components/js/Login';
 import Body from './components/js/Body';
-import { exchangeCodeForToken, refreshAccessToken, spotify } from './spotify';
+import { exchangeCodeForToken, refreshAccessToken, spotify, SCOPE_VERSION } from './spotify';
 
 const ACCESS_TOKEN_KEY = 'spotify_swipe_access_token';
 const REFRESH_TOKEN_KEY = 'spotify_swipe_refresh_token';
 const EXPIRY_KEY = 'spotify_swipe_token_expiry';
+const SCOPE_VERSION_KEY = 'spotify_swipe_scope_version';
 
 function readSession() {
   return {
     accessToken: window.localStorage.getItem(ACCESS_TOKEN_KEY),
     refreshToken: window.localStorage.getItem(REFRESH_TOKEN_KEY),
     expiry: Number(window.localStorage.getItem(EXPIRY_KEY)),
+    scopeVersion: window.localStorage.getItem(SCOPE_VERSION_KEY),
   };
 }
 
@@ -21,12 +23,14 @@ function writeSession(tokenResponse, fallbackRefreshToken) {
   window.localStorage.setItem(ACCESS_TOKEN_KEY, tokenResponse.access_token);
   window.localStorage.setItem(REFRESH_TOKEN_KEY, tokenResponse.refresh_token || fallbackRefreshToken || '');
   window.localStorage.setItem(EXPIRY_KEY, String(Date.now() + (tokenResponse.expires_in || 3600) * 1000));
+  window.localStorage.setItem(SCOPE_VERSION_KEY, SCOPE_VERSION);
 }
 
 function clearSession() {
   window.localStorage.removeItem(ACCESS_TOKEN_KEY);
   window.localStorage.removeItem(REFRESH_TOKEN_KEY);
   window.localStorage.removeItem(EXPIRY_KEY);
+  window.localStorage.removeItem(SCOPE_VERSION_KEY);
 }
 
 function App() {
@@ -46,8 +50,8 @@ function App() {
   // Called when a Spotify API request comes back 401 mid-session: try a
   // silent refresh before giving up and sending the user back to login.
   const handleAuthError = useCallback(() => {
-    const { refreshToken } = readSession();
-    if (!refreshToken) {
+    const { refreshToken, scopeVersion } = readSession();
+    if (!refreshToken || scopeVersion !== SCOPE_VERSION) {
       logout();
       return;
     }
@@ -98,7 +102,18 @@ function App() {
       return;
     }
 
-    const { accessToken, refreshToken, expiry } = readSession();
+    const { accessToken, refreshToken, expiry, scopeVersion } = readSession();
+
+    // A session from before the scope list last changed may not actually
+    // have the permissions the app now expects (Spotify can silently reuse
+    // an old consent grant on refresh, without ever re-prompting). Discard
+    // it outright rather than let it keep "working" with the wrong scopes.
+    if ((accessToken || refreshToken) && scopeVersion !== SCOPE_VERSION) {
+      clearSession();
+      setCheckingSession(false);
+      return;
+    }
+
     if (accessToken && expiry && Date.now() < expiry) {
       spotify.setAccessToken(accessToken);
       setToken(accessToken);

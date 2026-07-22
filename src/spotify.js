@@ -21,6 +21,12 @@ const scopes = [
     "user-library-modify"
 ];
 
+// Bump this whenever `scopes` changes. App.js compares it against what was
+// stored at login time and forces a fresh login (with a fresh consent
+// screen) if they don't match - otherwise a session from before a scope was
+// added would keep silently refreshing without ever actually having it.
+export const SCOPE_VERSION = String(scopes.length) + ':' + scopes.slice().sort().join(',');
+
 function base64UrlEncode(buffer) {
     return btoa(String.fromCharCode(...new Uint8Array(buffer)))
         .replace(/\+/g, '-')

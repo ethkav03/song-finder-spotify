@@ -91,11 +91,13 @@ button-only recommendation list were removed in favor of the swipe deck.
 - Browsers block audio autoplay without a user gesture, so the very first
   card of a session may need one manual play tap on the embedded player
   before playback starts automatically for the rest of the session.
-- After adding a new OAuth scope, Spotify can silently reuse an old consent
-  and skip re-prompting, so a token issued before a scope existed won't
-  actually have it. Login always forces the consent screen
-  (`show_dialog=true`) to avoid this, but if you ever see permission errors
-  on API calls, log out and back in.
+- Spotify can silently reuse an old consent grant on login and skip
+  re-prompting, so a session from before a scope was added to
+  `src/spotify.js` wouldn't actually have it (and refreshing never re-grants
+  scopes either). Login forces the consent screen (`show_dialog=true`) so
+  this only bites existing sessions, and `App.js` fingerprints the granted
+  scope list (`SCOPE_VERSION`) against what's stored, discarding the session
+  automatically if they don't match instead of leaving it silently broken.
 
 ## Available scripts
 
