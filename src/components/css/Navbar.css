@@ -5,21 +5,42 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
+    gap: 12px;
     padding: 0 16px;
+    padding-top: env(safe-area-inset-top);
     box-sizing: border-box;
 }
 
 .navbar__logout {
+    flex: 0 0 auto;
     background: none;
     border: 1px solid #555;
     color: #ccc;
     border-radius: 99px;
-    padding: 8px 16px;
+    padding: 10px 18px;
     font-size: 0.85rem;
     cursor: pointer;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
 }
 
 .navbar__logout:hover {
     border-color: #1db954;
     color: #1db954;
+}
+
+.navbar__logout:active {
+    transform: scale(0.95);
+}
+
+@media (max-width: 420px) {
+    .navbar {
+        padding: 0 12px;
+        padding-top: env(safe-area-inset-top);
+    }
+
+    .navbar__logout {
+        padding: 8px 14px;
+        font-size: 0.8rem;
+    }
 }

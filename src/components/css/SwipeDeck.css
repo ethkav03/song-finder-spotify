@@ -1,12 +1,15 @@
 .swipe-deck {
     position: relative;
     flex: 1;
+    min-height: 0;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 24px;
-    padding: 24px 16px;
+    gap: 16px;
+    padding: 16px;
+    box-sizing: border-box;
+    padding-bottom: max(16px, env(safe-area-inset-bottom));
 }
 
 .swipe-deck--status {
@@ -17,30 +20,41 @@
 
 .swipe-deck__stack {
     position: relative;
-    width: min(380px, 88vw);
-    height: min(560px, 62vh);
+    width: min(380px, 92vw);
+    flex: 1 1 auto;
+    min-height: 260px;
+    max-height: 560px;
 }
 
 .swipe-deck__actions {
+    flex: 0 0 auto;
     display: flex;
-    gap: 28px;
+    align-items: center;
+    justify-content: center;
+    gap: 36px;
 }
 
 .swipe-deck__btn {
-    width: 64px;
-    height: 64px;
+    width: 68px;
+    height: 68px;
     border-radius: 50%;
     border: none;
-    font-size: 1.6rem;
+    font-size: 1.7rem;
     cursor: pointer;
     display: grid;
     place-items: center;
     box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
     transition: transform 0.15s ease;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
 }
 
 .swipe-deck__btn:hover {
     transform: scale(1.08);
+}
+
+.swipe-deck__btn:active {
+    transform: scale(0.9);
 }
 
 .swipe-deck__btn--nope {
@@ -54,32 +68,58 @@
 }
 
 .swipe-deck__retry {
-    padding: 10px 22px;
+    min-height: 48px;
+    padding: 10px 26px;
     border-radius: 99px;
     border: none;
     background-color: #1db954;
     color: #fff;
+    font-size: 1rem;
     font-weight: 700;
     cursor: pointer;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.swipe-deck__retry:active {
+    transform: scale(0.96);
 }
 
 .swipe-deck__banner {
     position: absolute;
-    top: 12px;
+    top: max(12px, env(safe-area-inset-top));
+    left: 16px;
+    right: 16px;
     background-color: #e94057;
     color: #fff;
     padding: 8px 16px;
     border-radius: 8px;
     font-size: 0.9rem;
+    text-align: center;
     z-index: 5;
 }
 
 .swipe-deck__embed {
-    width: min(380px, 88vw);
+    flex: 0 0 auto;
+    width: min(380px, 92vw);
     border-radius: 12px;
     overflow: hidden;
 }
 
 .swipe-deck__embed iframe {
     border-radius: 12px;
+}
+
+/* Buttons stay full-size down to small phones - tighten spacing around
+   them instead of shrinking the tap targets. */
+@media (max-width: 420px) {
+    .swipe-deck {
+        gap: 12px;
+        padding: 12px;
+        padding-bottom: max(12px, env(safe-area-inset-bottom));
+    }
+
+    .swipe-deck__actions {
+        gap: 24px;
+    }
 }

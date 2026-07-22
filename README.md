@@ -89,6 +89,15 @@ Everything else (`Navbar`, `Profile`, `Login`) is largely as it was, restyled
 to match. The old static "top 5 songs/artists/genres" panels and the
 button-only recommendation list were removed in favor of the swipe deck.
 
+The layout is built mobile-first: `100dvh` (not `100vh`, which on mobile
+Safari/Chrome includes space the address bar can cover) sizes the page to
+the actual visible viewport, the card stack is a flexible region that
+shrinks to whatever's left after the buttons and player bar rather than a
+fixed size that could overflow, `env(safe-area-inset-*)` keeps content clear
+of notches/home indicators, and the Like/Nope/login buttons are sized as
+proper touch targets (~60-68px) with `touch-action: manipulation` and
+pressed-state feedback.
+
 ## Known limitations
 
 - Browsers block audio autoplay without a user gesture, so the very first

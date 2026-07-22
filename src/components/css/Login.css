@@ -2,9 +2,11 @@
     display: grid;
     place-items: center;
     height: 100vh;
+    height: 100dvh;
     background: radial-gradient(circle at top, #1e1e1e, #000);
     box-sizing: border-box;
     padding: 24px;
+    padding-bottom: max(24px, env(safe-area-inset-bottom));
 }
 
 .login__card {
@@ -27,20 +29,27 @@
 
 .login__button {
     display: inline-block;
-    padding: 14px 32px;
+    min-height: 52px;
+    padding: 14px 36px;
     background-color: #1db954;
     border: none;
     border-radius: 99px;
     font-family: inherit;
-    font-size: 1rem;
+    font-size: 1.05rem;
     font-weight: 800;
     color: white;
     text-decoration: none;
     cursor: pointer;
+    touch-action: manipulation;
+    transition: transform 0.15s ease, background-color 0.15s ease;
 }
 
 .login__button:hover {
     background-color: #1ed760;
+}
+
+.login__button:active {
+    transform: scale(0.96);
 }
 
 .login__error {

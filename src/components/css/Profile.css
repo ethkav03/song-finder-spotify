@@ -4,17 +4,36 @@
     align-items: center;
     gap: 10px;
     padding: 10px;
+    min-width: 0;
+    flex: 1 1 auto;
     text-decoration: none;
 }
 
 .profile > img {
-    height: 64px;
-    width: 64px;
-    border-radius: 32px;
+    flex: 0 0 auto;
+    height: 48px;
+    width: 48px;
+    border-radius: 24px;
     outline: white 2px solid;
 }
 
 .profile > h1 {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
     font-size: x-large;
     color: white;
+}
+
+@media (max-width: 420px) {
+    .profile > img {
+        height: 40px;
+        width: 40px;
+        border-radius: 20px;
+    }
+
+    .profile > h1 {
+        font-size: large;
+    }
 }
