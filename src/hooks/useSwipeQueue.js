@@ -1,17 +1,19 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { spotify } from '../spotify';
-import { getArtistIds, getTrackIds } from '../components/utilities';
 
-// Spotify's /recommendations endpoint accepts at most 5 seeds total
-// (any mix of seed_artists / seed_tracks / seed_genres).
-const MAX_SEEDS = 5;
-const MAX_SEED_ARTISTS = 3;
+// Spotify shut down /v1/recommendations (and audio-features/related-artists)
+// for apps without special "extended access" approval, which a personal
+// project realistically can't get. So instead of asking Spotify to generate
+// recommendations for us, we build our own feed by searching the catalog
+// using the genres and artists the listener already favors.
 const BATCH_SIZE = 40;
 const REFILL_THRESHOLD = 3;
 const MAX_EMPTY_STREAK = 3;
 const EMPTY_STREAK_BACKOFF_MS = 1500;
+const MAX_SEARCH_OFFSET = 200;
+const GENRE_QUERY_CHANCE = 0.6;
 
-// Used only when a listener has no top artists/tracks yet (brand new account).
+// Used when a listener has no top artists yet (brand new account).
 const FALLBACK_GENRES = ['pop', 'rock', 'hip-hop', 'indie', 'electronic'];
 
 function sample(pool, count) {
@@ -24,8 +26,8 @@ function isAuthError(err) {
     return err?.status === 401 || err?.xhr?.status === 401;
 }
 
-// Manages a continuously-refilling queue of Spotify recommendations,
-// deduplicated against everything already shown this session.
+// Manages a continuously-refilling queue of tracks pulled from the catalog
+// search, deduplicated against everything already shown this session.
 export default function useSwipeQueue({ onAuthError } = {}) {
     const [queue, setQueue] = useState([]);
     const [initializing, setInitializing] = useState(true);
@@ -33,37 +35,33 @@ export default function useSwipeQueue({ onAuthError } = {}) {
     const [saveError, setSaveError] = useState('');
 
     const seenIds = useRef(new Set());
-    const seedArtistIds = useRef([]);
-    const seedTrackIds = useRef([]);
+    const genrePool = useRef([]);
+    const artistPool = useRef([]);
     const fetchingRef = useRef(false);
     const initializedRef = useRef(false);
     const emptyStreakRef = useRef(0);
+
+    const buildQuery = useCallback(() => {
+        const genres = genrePool.current.length > 0 ? genrePool.current : FALLBACK_GENRES;
+        const useGenre = artistPool.current.length === 0 || Math.random() < GENRE_QUERY_CHANCE;
+
+        if (useGenre) {
+            return `genre:"${sample(genres, 1)[0]}"`;
+        }
+        return `artist:"${sample(artistPool.current, 1)[0]}"`;
+    }, []);
 
     const fetchBatch = useCallback(async () => {
         if (fetchingRef.current) return;
         fetchingRef.current = true;
 
         try {
-            const hasArtistSeeds = seedArtistIds.current.length > 0;
-            const hasTrackSeeds = seedTrackIds.current.length > 0;
-            const params = { limit: BATCH_SIZE };
+            const response = await spotify.searchTracks(buildQuery(), {
+                limit: BATCH_SIZE,
+                offset: Math.floor(Math.random() * MAX_SEARCH_OFFSET),
+            });
 
-            if (hasArtistSeeds || hasTrackSeeds) {
-                const artistCount = Math.min(MAX_SEED_ARTISTS, seedArtistIds.current.length);
-                const trackCount = Math.min(MAX_SEEDS - artistCount, seedTrackIds.current.length);
-
-                if (artistCount > 0) {
-                    params.seed_artists = sample(seedArtistIds.current, artistCount).join(',');
-                }
-                if (trackCount > 0) {
-                    params.seed_tracks = sample(seedTrackIds.current, trackCount).join(',');
-                }
-            } else {
-                params.seed_genres = sample(FALLBACK_GENRES, MAX_SEEDS).join(',');
-            }
-
-            const response = await spotify.getRecommendations(params);
-            const fresh = (response.tracks || []).filter(track => {
+            const fresh = (response.tracks?.items || []).filter(track => {
                 if (!track || !track.id || seenIds.current.has(track.id)) return false;
                 seenIds.current.add(track.id);
                 return true;
@@ -76,33 +74,33 @@ export default function useSwipeQueue({ onAuthError } = {}) {
             if (isAuthError(err)) {
                 onAuthError?.();
             } else {
-                console.error('Failed to fetch recommendations', err);
-                setFetchError('Could not load recommendations from Spotify.');
+                console.error('Failed to fetch tracks', err);
+                setFetchError('Could not load songs from Spotify.');
             }
         } finally {
             fetchingRef.current = false;
             setInitializing(false);
         }
-    }, [onAuthError]);
+    }, [buildQuery, onAuthError]);
 
-    // One-time setup: pull a broad pool of top artists/tracks to seed recommendations from.
+    // One-time setup: pull the listener's top artists to build genre/artist pools to search from.
     useEffect(() => {
         if (initializedRef.current) return;
         initializedRef.current = true;
 
-        Promise.all([
-            spotify.getMyTopArtists({ limit: 50 }).catch(() => ({ items: [] })),
-            spotify.getMyTopTracks({ limit: 50 }).catch(() => ({ items: [] })),
-        ]).then(([artists, tracks]) => {
-            seedArtistIds.current = getArtistIds(artists.items || []);
-            seedTrackIds.current = getTrackIds(tracks.items || []);
-            fetchBatch();
-        });
+        spotify.getMyTopArtists({ limit: 50 })
+            .catch(() => ({ items: [] }))
+            .then((artists) => {
+                const topArtists = artists.items || [];
+                artistPool.current = topArtists.map(a => a.name).filter(Boolean);
+                genrePool.current = Array.from(new Set(topArtists.flatMap(a => a.genres || [])));
+                fetchBatch();
+            });
     }, [fetchBatch]);
 
     // Keep the queue topped up as the user swipes through it. Backs off (and
     // eventually stops) if Spotify keeps returning nothing new, so a genuinely
-    // exhausted recommendation pool doesn't turn into a request-spam loop.
+    // exhausted search query doesn't turn into a request-spam loop.
     useEffect(() => {
         if (initializing) return;
         if (queue.length >= REFILL_THRESHOLD) return;

@@ -2,8 +2,8 @@
 
 A Tinder-style way to discover music: swipe right on a song to add it to your
 Spotify Liked Songs, swipe left to skip it. The feed is a continuous stream of
-recommendations seeded from your own top artists and tracks, refilled
-automatically as you swipe.
+catalog tracks pulled via search, seeded from your own top artists and their
+genres, refilled automatically as you swipe.
 
 ## Setup
 
@@ -31,9 +31,9 @@ automatically as you swipe.
 5. Open the app at **`http://127.0.0.1:3000`**, not `http://localhost:3000`
    — they're the same server, but the redirect URI has to match exactly what
    you registered.
-6. Log in with Spotify. Your account needs *some* listening history for
-   Spotify to generate recommendations from your top artists/tracks; brand
-   new accounts fall back to a small set of general genre seeds.
+6. Log in with Spotify. Your account needs *some* listening history so the
+   app has top artists/genres to search from; brand new accounts fall back to
+   a small set of general genre seeds.
 
 Auth uses the Authorization Code flow with PKCE — the flow Spotify requires
 for browser-only apps now that Implicit Grant is disabled for apps. No
@@ -49,13 +49,17 @@ before falling back to the login screen.
   Authorization Code + PKCE login/token-exchange/refresh helpers and scopes.
   Client ID and redirect URI come from environment variables rather than a
   committed secrets file.
-- **`src/hooks/useSwipeQueue.js`** — owns the recommendation feed. On login it
-  pulls up to 50 of your top artists and top tracks as a seed pool, then
-  repeatedly calls Spotify's `/recommendations` endpoint with a random sample
-  of up to 5 seeds per call (its max), filtering out any track already seen
-  this session. It automatically fetches another batch whenever the queue
-  drops below 3 songs, with backoff if Spotify stops returning anything new,
-  so the feed keeps flowing without hammering the API.
+- **`src/hooks/useSwipeQueue.js`** — owns the feed. Spotify shut down
+  `/v1/recommendations` (along with related-artists and audio-features) for
+  apps without special "extended access" approval, which isn't realistically
+  available for a personal project, so this builds its own feed instead: on
+  login it pulls up to 50 of your top artists to build a genre pool and an
+  artist-name pool, then repeatedly calls the catalog search endpoint
+  (`genre:"..."` most of the time, `artist:"..."` the rest) at a random
+  offset, filtering out any track already seen this session. It automatically
+  fetches another batch whenever the queue drops below 3 songs, with backoff
+  if Spotify stops returning anything new, so the feed keeps flowing without
+  hammering the API.
 - **`src/components/js/SwipeCard.jsx`** — a single draggable card using
   Pointer Events (mouse + touch + pen in one code path). Dragging past ~100px
   commits the swipe and animates the card off-screen; releasing short of that
@@ -82,7 +86,7 @@ button-only recommendation list were removed in favor of the swipe deck.
 
 ## Available scripts
 
-- `npm start` — run in development mode at [http://localhost:3000](http://localhost:3000).
+- `npm start` — run in development mode at [http://127.0.0.1:3000](http://127.0.0.1:3000).
 - `npm test` — run the test suite.
 - `npm run build` — production build to `build/`.
 
