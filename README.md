@@ -29,16 +29,20 @@ automatically as you swipe.
    Spotify to generate recommendations from your top artists/tracks; brand
    new accounts fall back to a small set of general genre seeds.
 
-Auth uses Spotify's Implicit Grant flow (a token in the URL fragment, no
-backend required). Tokens last about an hour and are cached in
-`localStorage` so a page refresh doesn't force a re-login; once it expires
-(or Spotify returns a 401) you're dropped back to the login screen.
+Auth uses the Authorization Code flow with PKCE — the flow Spotify requires
+for browser-only apps now that Implicit Grant is disabled for apps. No
+backend or client secret is needed; a code verifier is generated in-browser
+and everything happens over `fetch`. Access + refresh tokens are cached in
+`localStorage`, so a page refresh doesn't force a re-login, and an expired
+access token (or a 401 from Spotify mid-session) triggers a silent refresh
+before falling back to the login screen.
 
 ## How it works
 
-- **`src/spotify.js`** — Spotify API client (`spotify-web-api-js`) and the
-  login URL/scopes. Client ID and redirect URI come from environment
-  variables rather than a committed secrets file.
+- **`src/spotify.js`** — Spotify API client (`spotify-web-api-js`) plus the
+  Authorization Code + PKCE login/token-exchange/refresh helpers and scopes.
+  Client ID and redirect URI come from environment variables rather than a
+  committed secrets file.
 - **`src/hooks/useSwipeQueue.js`** — owns the recommendation feed. On login it
   pulls up to 50 of your top artists and top tracks as a seed pool, then
   repeatedly calls Spotify's `/recommendations` endpoint with a random sample
@@ -57,8 +61,9 @@ backend required). Tokens last about an hour and are cached in
   stack, wires up the buttons/keyboard shortcuts (← skip, → like), and saves
   liked tracks to the user's library via `addToMySavedTracks` when a swipe
   lands.
-- **`src/App.js`** — handles the OAuth redirect, persists the token, and logs
-  the user out on expiry/401 or via the navbar button.
+- **`src/App.js`** — handles the OAuth redirect (code exchange), persists
+  access/refresh tokens, silently refreshes on expiry/401, and logs the user
+  out when that fails or via the navbar button.
 
 Everything else (`Navbar`, `Profile`, `Login`) is largely as it was, restyled
 to match. The old static "top 5 songs/artists/genres" panels and the
@@ -68,8 +73,6 @@ button-only recommendation list were removed in favor of the swipe deck.
 
 - Spotify has been rolling back `preview_url` availability across the
   catalog, so the in-card play button won't show up for every song.
-- The Implicit Grant flow doesn't issue refresh tokens, so sessions longer
-  than ~1 hour will require logging in again.
 
 ## Available scripts
 

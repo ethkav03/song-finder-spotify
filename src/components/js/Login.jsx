@@ -1,6 +1,6 @@
 import React from 'react';
 import '../css/Login.css';
-import { loginUrl, clientId } from '../../spotify.js';
+import { redirectToSpotifyLogin, clientId } from '../../spotify.js';
 
 function Login({ error }) {
   const configured = Boolean(clientId);
@@ -17,7 +17,7 @@ function Login({ error }) {
             {error && <p className='login__error'>{error}</p>}
 
             {configured ? (
-                <a className='login__button' href={loginUrl}>Log in with Spotify</a>
+                <button className='login__button' onClick={redirectToSpotifyLogin}>Log in with Spotify</button>
             ) : (
                 <p className='login__error'>
                     Missing Spotify credentials. Copy <code>.env.example</code> to <code>.env</code> and

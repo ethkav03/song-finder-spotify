@@ -2,67 +2,121 @@ import React, { useCallback, useEffect, useState } from 'react';
 import './App.css';
 import Login from './components/js/Login';
 import Body from './components/js/Body';
-import { getTokenFromUrl, spotify } from './spotify';
+import { exchangeCodeForToken, refreshAccessToken, spotify } from './spotify';
 
-const TOKEN_KEY = 'spotify_swipe_token';
-const TOKEN_EXPIRY_KEY = 'spotify_swipe_token_expiry';
+const ACCESS_TOKEN_KEY = 'spotify_swipe_access_token';
+const REFRESH_TOKEN_KEY = 'spotify_swipe_refresh_token';
+const EXPIRY_KEY = 'spotify_swipe_token_expiry';
 
-function getStoredToken() {
-  const token = window.localStorage.getItem(TOKEN_KEY);
-  const expiry = Number(window.localStorage.getItem(TOKEN_EXPIRY_KEY));
-  return token && expiry && Date.now() < expiry ? token : null;
+function readSession() {
+  return {
+    accessToken: window.localStorage.getItem(ACCESS_TOKEN_KEY),
+    refreshToken: window.localStorage.getItem(REFRESH_TOKEN_KEY),
+    expiry: Number(window.localStorage.getItem(EXPIRY_KEY)),
+  };
 }
 
-function storeToken(token, expiresInSeconds) {
-  window.localStorage.setItem(TOKEN_KEY, token);
-  window.localStorage.setItem(TOKEN_EXPIRY_KEY, String(Date.now() + expiresInSeconds * 1000));
+// Spotify only returns a new refresh_token sometimes; keep the old one when it doesn't.
+function writeSession(tokenResponse, fallbackRefreshToken) {
+  window.localStorage.setItem(ACCESS_TOKEN_KEY, tokenResponse.access_token);
+  window.localStorage.setItem(REFRESH_TOKEN_KEY, tokenResponse.refresh_token || fallbackRefreshToken || '');
+  window.localStorage.setItem(EXPIRY_KEY, String(Date.now() + (tokenResponse.expires_in || 3600) * 1000));
 }
 
-function clearStoredToken() {
-  window.localStorage.removeItem(TOKEN_KEY);
-  window.localStorage.removeItem(TOKEN_EXPIRY_KEY);
+function clearSession() {
+  window.localStorage.removeItem(ACCESS_TOKEN_KEY);
+  window.localStorage.removeItem(REFRESH_TOKEN_KEY);
+  window.localStorage.removeItem(EXPIRY_KEY);
 }
 
 function App() {
   const [token, setToken] = useState(null);
   const [loginError, setLoginError] = useState(null);
-
-  useEffect(() => {
-    const hash = getTokenFromUrl();
-
-    if (hash.access_token || hash.error) {
-      window.location.hash = '';
-    }
-
-    if (hash.access_token) {
-      storeToken(hash.access_token, Number(hash.expires_in) || 3600);
-      spotify.setAccessToken(hash.access_token);
-      setToken(hash.access_token);
-      return;
-    }
-
-    if (hash.error) {
-      setLoginError('Spotify login was cancelled or failed. Please try again.');
-      return;
-    }
-
-    const storedToken = getStoredToken();
-    if (storedToken) {
-      spotify.setAccessToken(storedToken);
-      setToken(storedToken);
-    }
-  }, []);
+  const [checkingSession, setCheckingSession] = useState(true);
 
   const logout = useCallback(() => {
-    clearStoredToken();
+    clearSession();
     spotify.setAccessToken('');
     setToken(null);
   }, []);
 
+  // Called when a Spotify API request comes back 401 mid-session: try a
+  // silent refresh before giving up and sending the user back to login.
+  const handleAuthError = useCallback(() => {
+    const { refreshToken } = readSession();
+    if (!refreshToken) {
+      logout();
+      return;
+    }
+
+    refreshAccessToken(refreshToken)
+      .then(tokenResponse => {
+        writeSession(tokenResponse, refreshToken);
+        spotify.setAccessToken(tokenResponse.access_token);
+        setToken(tokenResponse.access_token);
+      })
+      .catch(() => logout());
+  }, [logout]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get('code');
+    const error = params.get('error');
+    const state = params.get('state');
+
+    if (code || error) {
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+
+    if (code) {
+      exchangeCodeForToken(code, state)
+        .then(tokenResponse => {
+          writeSession(tokenResponse);
+          spotify.setAccessToken(tokenResponse.access_token);
+          setToken(tokenResponse.access_token);
+        })
+        .catch(() => setLoginError('Could not complete Spotify login. Please try again.'))
+        .finally(() => setCheckingSession(false));
+      return;
+    }
+
+    if (error) {
+      setLoginError('Spotify login was cancelled or failed. Please try again.');
+      setCheckingSession(false);
+      return;
+    }
+
+    const { accessToken, refreshToken, expiry } = readSession();
+    if (accessToken && expiry && Date.now() < expiry) {
+      spotify.setAccessToken(accessToken);
+      setToken(accessToken);
+      setCheckingSession(false);
+      return;
+    }
+
+    if (refreshToken) {
+      refreshAccessToken(refreshToken)
+        .then(tokenResponse => {
+          writeSession(tokenResponse, refreshToken);
+          spotify.setAccessToken(tokenResponse.access_token);
+          setToken(tokenResponse.access_token);
+        })
+        .catch(() => clearSession())
+        .finally(() => setCheckingSession(false));
+      return;
+    }
+
+    setCheckingSession(false);
+  }, []);
+
+  if (checkingSession) {
+    return <div className="App" />;
+  }
+
   return (
     <div className="App">
       {token
-        ? <Body onAuthError={logout} onLogout={logout} />
+        ? <Body onAuthError={handleAuthError} onLogout={logout} />
         : <Login error={loginError} />}
     </div>
   );
