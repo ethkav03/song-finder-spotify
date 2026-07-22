@@ -1,0 +1,75 @@
+.swipe-deck {
+    position: relative;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 24px;
+    padding: 24px 16px;
+}
+
+.swipe-deck--status {
+    color: #ddd;
+    text-align: center;
+    gap: 16px;
+}
+
+.swipe-deck__stack {
+    position: relative;
+    width: min(380px, 88vw);
+    height: min(560px, 62vh);
+}
+
+.swipe-deck__actions {
+    display: flex;
+    gap: 28px;
+}
+
+.swipe-deck__btn {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    border: none;
+    font-size: 1.6rem;
+    cursor: pointer;
+    display: grid;
+    place-items: center;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
+    transition: transform 0.15s ease;
+}
+
+.swipe-deck__btn:hover {
+    transform: scale(1.08);
+}
+
+.swipe-deck__btn--nope {
+    background-color: #ffffff;
+    color: #e94057;
+}
+
+.swipe-deck__btn--like {
+    background-color: #1db954;
+    color: #ffffff;
+}
+
+.swipe-deck__retry {
+    padding: 10px 22px;
+    border-radius: 99px;
+    border: none;
+    background-color: #1db954;
+    color: #fff;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.swipe-deck__banner {
+    position: absolute;
+    top: 12px;
+    background-color: #e94057;
+    color: #fff;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    z-index: 5;
+}

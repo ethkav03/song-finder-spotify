@@ -1,2 +1,80 @@
-# song-finder-spotify
-Help find new songs on spotify
+# Song Swiper
+
+A Tinder-style way to discover music: swipe right on a song to add it to your
+Spotify Liked Songs, swipe left to skip it. The feed is a continuous stream of
+recommendations seeded from your own top artists and tracks, refilled
+automatically as you swipe.
+
+## Setup
+
+1. Create an app at the [Spotify Developer Dashboard](https://developer.spotify.com/dashboard).
+2. In the app's Settings, add a Redirect URI of `http://localhost:3000` (or
+   wherever you'll run this from).
+3. Copy `.env.example` to `.env` and fill in your Client ID:
+
+   ```
+   REACT_APP_SPOTIFY_CLIENT_ID=your_spotify_client_id_here
+   REACT_APP_SPOTIFY_REDIRECT_URI=http://localhost:3000
+   ```
+
+   `REACT_APP_SPOTIFY_REDIRECT_URI` is optional — it defaults to the page's
+   own origin, which covers most local/dev setups.
+4. Install dependencies and start the app:
+
+   ```
+   npm install
+   npm start
+   ```
+5. Log in with Spotify. Your account needs *some* listening history for
+   Spotify to generate recommendations from your top artists/tracks; brand
+   new accounts fall back to a small set of general genre seeds.
+
+Auth uses Spotify's Implicit Grant flow (a token in the URL fragment, no
+backend required). Tokens last about an hour and are cached in
+`localStorage` so a page refresh doesn't force a re-login; once it expires
+(or Spotify returns a 401) you're dropped back to the login screen.
+
+## How it works
+
+- **`src/spotify.js`** — Spotify API client (`spotify-web-api-js`) and the
+  login URL/scopes. Client ID and redirect URI come from environment
+  variables rather than a committed secrets file.
+- **`src/hooks/useSwipeQueue.js`** — owns the recommendation feed. On login it
+  pulls up to 50 of your top artists and top tracks as a seed pool, then
+  repeatedly calls Spotify's `/recommendations` endpoint with a random sample
+  of up to 5 seeds per call (its max), filtering out any track already seen
+  this session. It automatically fetches another batch whenever the queue
+  drops below 3 songs, with backoff if Spotify stops returning anything new,
+  so the feed keeps flowing without hammering the API.
+- **`src/components/js/SwipeCard.jsx`** — a single draggable card using
+  Pointer Events (mouse + touch + pen in one code path). Dragging past ~100px
+  commits the swipe and animates the card off-screen; releasing short of that
+  springs it back to center. Direction can also be triggered programmatically
+  (used by the Like/Nope buttons and arrow keys) via a small imperative
+  handle. Shows a 30-second preview play button when Spotify provides one for
+  the track (`preview_url` isn't populated for every track).
+- **`src/components/js/SwipeDeck.jsx`** — renders the current + next card as a
+  stack, wires up the buttons/keyboard shortcuts (← skip, → like), and saves
+  liked tracks to the user's library via `addToMySavedTracks` when a swipe
+  lands.
+- **`src/App.js`** — handles the OAuth redirect, persists the token, and logs
+  the user out on expiry/401 or via the navbar button.
+
+Everything else (`Navbar`, `Profile`, `Login`) is largely as it was, restyled
+to match. The old static "top 5 songs/artists/genres" panels and the
+button-only recommendation list were removed in favor of the swipe deck.
+
+## Known limitations
+
+- Spotify has been rolling back `preview_url` availability across the
+  catalog, so the in-card play button won't show up for every song.
+- The Implicit Grant flow doesn't issue refresh tokens, so sessions longer
+  than ~1 hour will require logging in again.
+
+## Available scripts
+
+- `npm start` — run in development mode at [http://localhost:3000](http://localhost:3000).
+- `npm test` — run the test suite.
+- `npm run build` — production build to `build/`.
+
+This project was originally bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
