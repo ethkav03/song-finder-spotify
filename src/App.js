@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import './App.css';
 import Login from './components/js/Login';
 import Body from './components/js/Body';
@@ -33,6 +33,9 @@ function App() {
   const [token, setToken] = useState(null);
   const [loginError, setLoginError] = useState(null);
   const [checkingSession, setCheckingSession] = useState(true);
+  // Authorization codes are single-use; guard against React StrictMode's
+  // dev-only double effect invocation trying to exchange the same code twice.
+  const exchangeStartedRef = useRef(false);
 
   const logout = useCallback(() => {
     clearSession();
@@ -55,7 +58,10 @@ function App() {
         spotify.setAccessToken(tokenResponse.access_token);
         setToken(tokenResponse.access_token);
       })
-      .catch(() => logout());
+      .catch(err => {
+        console.error('Silent token refresh failed:', err);
+        logout();
+      });
   }, [logout]);
 
   useEffect(() => {
@@ -69,13 +75,19 @@ function App() {
     }
 
     if (code) {
+      if (exchangeStartedRef.current) return;
+      exchangeStartedRef.current = true;
+
       exchangeCodeForToken(code, state)
         .then(tokenResponse => {
           writeSession(tokenResponse);
           spotify.setAccessToken(tokenResponse.access_token);
           setToken(tokenResponse.access_token);
         })
-        .catch(() => setLoginError('Could not complete Spotify login. Please try again.'))
+        .catch(err => {
+          console.error('Spotify login failed:', err);
+          setLoginError(err.message || 'Could not complete Spotify login. Please try again.');
+        })
         .finally(() => setCheckingSession(false));
       return;
     }
@@ -101,7 +113,10 @@ function App() {
           spotify.setAccessToken(tokenResponse.access_token);
           setToken(tokenResponse.access_token);
         })
-        .catch(() => clearSession())
+        .catch(err => {
+          console.error('Startup token refresh failed:', err);
+          clearSession();
+        })
         .finally(() => setCheckingSession(false));
       return;
     }

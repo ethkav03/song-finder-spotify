@@ -77,11 +77,22 @@ function consumePkceSession(returnedState) {
     return verifier;
 }
 
+// Reads Spotify's {error, error_description} body so failures are debuggable
+// instead of just "something went wrong".
+async function describeTokenError(response) {
+    try {
+        const body = await response.json();
+        return body.error_description || body.error || `HTTP ${response.status}`;
+    } catch {
+        return `HTTP ${response.status}`;
+    }
+}
+
 // Exchanges the ?code= Spotify redirected back with for an access/refresh token pair.
 export async function exchangeCodeForToken(code, state) {
     const verifier = consumePkceSession(state);
     if (!verifier) {
-        throw new Error('Login could not be verified. Please try again.');
+        throw new Error('Login could not be verified (missing or mismatched PKCE session) - please try again.');
     }
 
     const response = await fetch(TOKEN_ENDPOINT, {
@@ -97,7 +108,7 @@ export async function exchangeCodeForToken(code, state) {
     });
 
     if (!response.ok) {
-        throw new Error('Failed to exchange authorization code for a token.');
+        throw new Error(`Failed to exchange authorization code for a token: ${await describeTokenError(response)}`);
     }
 
     return response.json();
@@ -116,7 +127,7 @@ export async function refreshAccessToken(refreshToken) {
     });
 
     if (!response.ok) {
-        throw new Error('Failed to refresh access token.');
+        throw new Error(`Failed to refresh access token: ${await describeTokenError(response)}`);
     }
 
     return response.json();
