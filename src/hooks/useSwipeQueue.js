@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { spotify } from '../spotify';
+import { spotify, saveTrack } from '../spotify';
 
 // Spotify shut down /v1/recommendations (and audio-features/related-artists)
 // for apps without special "extended access" approval, which a personal
@@ -24,18 +24,6 @@ function sample(pool, count) {
 
 function isAuthError(err) {
     return err?.status === 401 || err?.xhr?.status === 401;
-}
-
-// spotify-web-api-js rejects with the raw XMLHttpRequest, not a parsed
-// error - pull Spotify's {error: {status, message}} body out of it so
-// failures are debuggable instead of a generic "something went wrong".
-function describeApiError(err) {
-    try {
-        const body = JSON.parse(err.responseText);
-        return body?.error?.message || `HTTP ${err.status}`;
-    } catch {
-        return err?.status ? `HTTP ${err.status}` : 'network error';
-    }
 }
 
 // Manages a continuously-refilling queue of tracks pulled from the catalog
@@ -135,12 +123,12 @@ export default function useSwipeQueue({ onAuthError } = {}) {
         setQueue(prev => {
             const [current, ...rest] = prev;
             if (liked && current) {
-                spotify.addToMySavedTracks([current.id]).catch(err => {
+                saveTrack(current.id).catch(err => {
                     if (isAuthError(err)) {
                         onAuthError?.();
                     } else {
                         console.error('Failed to save track', err);
-                        setSaveError(`Couldn't save "${current.name}": ${describeApiError(err)}`);
+                        setSaveError(`Couldn't save "${current.name}": ${err.message}`);
                     }
                 });
             }

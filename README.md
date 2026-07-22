@@ -76,8 +76,11 @@ before falling back to the login screen.
   Spotify-branded widget.
 - **`src/components/js/SwipeDeck.jsx`** — renders the current + next card as a
   stack, wires up the buttons/keyboard shortcuts (← skip, → like), and saves
-  liked tracks to the user's library via `addToMySavedTracks` when a swipe
-  lands.
+  liked tracks to the user's library on a right swipe via `saveTrack()`
+  (`src/spotify.js`) - a direct `fetch` PUT to `/me/tracks`, bypassing
+  `spotify-web-api-js`'s `addToMySavedTracks`, which sends a bare array body
+  Spotify's API now rejects ("Missing required field: ids") instead of the
+  `{"ids": [...]}` shape it actually wants.
 - **`src/App.js`** — handles the OAuth redirect (code exchange), persists
   access/refresh tokens, silently refreshes on expiry/401, and logs the user
   out when that fails or via the navbar button.

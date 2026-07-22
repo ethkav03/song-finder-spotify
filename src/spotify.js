@@ -4,6 +4,7 @@ export const spotify = new SpotifyWebApi();
 
 const AUTH_ENDPOINT = "https://accounts.spotify.com/authorize";
 const TOKEN_ENDPOINT = "https://accounts.spotify.com/api/token";
+const API_BASE = "https://api.spotify.com/v1";
 const CODE_VERIFIER_KEY = "spotify_pkce_code_verifier";
 const STATE_KEY = "spotify_pkce_state";
 
@@ -124,6 +125,38 @@ export async function exchangeCodeForToken(code, state) {
     }
 
     return response.json();
+}
+
+// Reads Spotify's Web API {error: {status, message}} body (a different
+// shape than the token endpoint's {error, error_description}).
+async function describeApiError(response) {
+    try {
+        const body = await response.json();
+        return body?.error?.message || `HTTP ${response.status}`;
+    } catch {
+        return `HTTP ${response.status}`;
+    }
+}
+
+// spotify-web-api-js's addToMySavedTracks() PUTs a bare JSON array
+// ([id1, id2]) as the body, which Spotify's API now rejects with
+// "Missing required field: ids" - it wants {"ids": [id1, id2]}. Bypass the
+// library for this one call and hit the endpoint with the body it expects.
+export async function saveTrack(trackId) {
+    const response = await fetch(`${API_BASE}/me/tracks`, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${spotify.getAccessToken()}`,
+        },
+        body: JSON.stringify({ ids: [trackId] }),
+    });
+
+    if (!response.ok) {
+        const error = new Error(`Failed to save track: ${await describeApiError(response)}`);
+        error.status = response.status;
+        throw error;
+    }
 }
 
 // Uses a stored refresh token to get a new access token without a full re-login.
