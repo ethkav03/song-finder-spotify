@@ -1,4 +1,6 @@
 import SpotifyWebApi from "spotify-web-api-js";
+import { Capacitor } from "@capacitor/core";
+import { Browser } from "@capacitor/browser";
 
 export const spotify = new SpotifyWebApi();
 
@@ -8,10 +10,21 @@ const API_BASE = "https://api.spotify.com/v1";
 const CODE_VERIFIER_KEY = "spotify_pkce_code_verifier";
 const STATE_KEY = "spotify_pkce_state";
 
+export const isNativePlatform = Capacitor.isNativePlatform();
+
+// Spotify requires https:// (or a 127.0.0.1 loopback, which isn't meaningful
+// on-device) - there's no real server at this address, it exists purely so
+// AndroidManifest.xml's intent-filter (scheme="https" host="com.songswiper.app")
+// can intercept the redirect and hand it back to the app instead of it 404ing
+// in a browser. This mirrors the pattern Spotify's own Android SDK docs use.
+const NATIVE_REDIRECT_URI = "https://com.songswiper.app/callback";
+
 // Set REACT_APP_SPOTIFY_CLIENT_ID (and optionally REACT_APP_SPOTIFY_REDIRECT_URI)
 // in a .env file at the project root - see .env.example.
 export const clientId = process.env.REACT_APP_SPOTIFY_CLIENT_ID;
-export const redirectURI = process.env.REACT_APP_SPOTIFY_REDIRECT_URI || window.location.origin;
+export const redirectURI = isNativePlatform
+    ? NATIVE_REDIRECT_URI
+    : (process.env.REACT_APP_SPOTIFY_REDIRECT_URI || window.location.origin);
 
 const scopes = [
     "user-read-currently-playing",
@@ -73,7 +86,18 @@ export async function redirectToSpotifyLogin() {
         show_dialog: 'true',
     });
 
-    window.location.href = `${AUTH_ENDPOINT}?${params.toString()}`;
+    const url = `${AUTH_ENDPOINT}?${params.toString()}`;
+
+    if (isNativePlatform) {
+        // Login inside the app's own WebView is unreliable (Spotify's login
+        // page can behave oddly or refuse to complete embedded) and is a
+        // legitimate phishing red flag for an OAuth provider to block, so
+        // open it in the system browser / Custom Tabs instead. The redirect
+        // back is caught by the appUrlOpen listener in App.js.
+        await Browser.open({ url });
+    } else {
+        window.location.href = url;
+    }
 }
 
 // Confirms the `state` Spotify returned matches what we sent (basic CSRF

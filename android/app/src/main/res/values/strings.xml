@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Song Swiper</string>
+    <string name="title_activity_main">Song Swiper</string>
+    <string name="package_name">com.songswiper.app</string>
+    <string name="custom_url_scheme">com.songswiper.app</string>
+</resources>

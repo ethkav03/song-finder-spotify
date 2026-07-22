@@ -118,3 +118,47 @@ pressed-state feedback.
 - `npm run build` — production build to `build/`.
 
 This project was originally bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+
+## Android app
+
+The `android/` folder is a [Capacitor](https://capacitorjs.com/) wrapper
+around the same React app - Capacitor bundles the production `build/` output
+straight into the APK, so the phone doesn't need a live server. It needs
+Android Studio (for its SDK + a JDK 21+, e.g. the JBR it bundles - a plain
+JDK 19 install isn't enough) installed to actually build.
+
+**One-time Spotify Dashboard step**: add a second Redirect URI to your
+Spotify app: `https://com.songswiper.app/callback`. This isn't a real
+server - it exists purely so `AndroidManifest.xml`'s intent-filter can
+intercept that exact URL and hand the login back to the app instead of it
+404ing in a browser (the same pattern Spotify's own Android SDK docs use).
+This is in addition to the `http://127.0.0.1:3000` entry needed for the web
+app, not a replacement.
+
+To build and install a debug APK:
+
+```
+npm run build
+npx cap sync android
+cd android
+./gradlew assembleDebug          # Windows: gradlew.bat assembleDebug
+```
+
+The APK ends up at `android/app/build/outputs/apk/debug/app-debug.apk` -
+install it with `adb install -r app-debug.apk`, or open the `android/`
+folder directly in Android Studio and hit Run for a device/emulator with
+logging.
+
+**How the login flow differs from web**: an embedded WebView completing an
+OAuth login is unreliable and a legitimate phishing red flag for a provider
+to just block outright, so on native the login page opens in the system
+browser (`@capacitor/browser`) instead of navigating the app's own WebView.
+Spotify's redirect back is caught by the OS (the intent-filter above) and
+delivered to the app as an `appUrlOpen` event (`@capacitor/app`, handled in
+`App.js`) rather than a URL change, but from there it's the same
+`exchangeCodeForToken` PKCE exchange as the web flow -
+`src/spotify.js`'s `isNativePlatform` flag (from `@capacitor/core`) is what
+switches between the two.
+
+Whenever web code changes, rerun `npm run build && npx cap sync android`
+before rebuilding the APK - Capacitor doesn't watch for changes automatically.
