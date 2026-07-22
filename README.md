@@ -8,24 +8,30 @@ automatically as you swipe.
 ## Setup
 
 1. Create an app at the [Spotify Developer Dashboard](https://developer.spotify.com/dashboard).
-2. In the app's Settings, add a Redirect URI of `http://localhost:3000` (or
-   wherever you'll run this from).
+2. In the app's Settings, add a Redirect URI of `http://127.0.0.1:3000` (or
+   an `https://` URL wherever you'll run this from). Spotify only allows
+   plain `http://` for the literal loopback address `127.0.0.1` — it rejects
+   `localhost` with a "redirect_uri: Insecure" error.
 3. Copy `.env.example` to `.env` and fill in your Client ID:
 
    ```
    REACT_APP_SPOTIFY_CLIENT_ID=your_spotify_client_id_here
-   REACT_APP_SPOTIFY_REDIRECT_URI=http://localhost:3000
+   REACT_APP_SPOTIFY_REDIRECT_URI=http://127.0.0.1:3000
    ```
 
    `REACT_APP_SPOTIFY_REDIRECT_URI` is optional — it defaults to the page's
-   own origin, which covers most local/dev setups.
+   own origin — but for local dev set it explicitly so it matches what you
+   registered above.
 4. Install dependencies and start the app:
 
    ```
    npm install
    npm start
    ```
-5. Log in with Spotify. Your account needs *some* listening history for
+5. Open the app at **`http://127.0.0.1:3000`**, not `http://localhost:3000`
+   — they're the same server, but the redirect URI has to match exactly what
+   you registered.
+6. Log in with Spotify. Your account needs *some* listening history for
    Spotify to generate recommendations from your top artists/tracks; brand
    new accounts fall back to a small set of general genre seeds.
 
