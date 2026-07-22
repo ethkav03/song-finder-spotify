@@ -50,22 +50,6 @@
     color: rgba(255, 255, 255, 0.85);
 }
 
-.swipe-card__preview-btn {
-    position: absolute;
-    bottom: 12px;
-    right: 12px;
-    width: 44px;
-    height: 44px;
-    border-radius: 50%;
-    border: none;
-    background-color: rgba(0, 0, 0, 0.6);
-    color: #fff;
-    font-size: 1.1rem;
-    display: grid;
-    place-items: center;
-    cursor: pointer;
-}
-
 .swipe-card__info {
     flex: 0 0 auto;
     padding: 14px 18px 18px;

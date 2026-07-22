@@ -58,6 +58,12 @@ export async function redirectToSpotifyLogin() {
         code_challenge_method: 'S256',
         code_challenge: challenge,
         state,
+        // Force the consent screen every time. Without this, Spotify can
+        // silently reuse a prior grant and skip re-prompting - if that grant
+        // predates a scope being added (e.g. user-library-modify), the new
+        // token comes back without it and library writes fail with no
+        // obvious cause.
+        show_dialog: 'true',
     });
 
     window.location.href = `${AUTH_ENDPOINT}?${params.toString()}`;

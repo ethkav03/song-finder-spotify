@@ -65,12 +65,17 @@ before falling back to the login screen.
   commits the swipe and animates the card off-screen; releasing short of that
   springs it back to center. Direction can also be triggered programmatically
   (used by the Like/Nope buttons and arrow keys) via a small imperative
-  handle. Shows a 30-second preview play/pause button when Spotify provides
-  one for the track (`preview_url` isn't populated for every track).
+  handle.
+- **`src/hooks/useEmbedPreviewPlayer.js`** — plays each card's track through
+  Spotify's [embed IFrame player](https://developer.spotify.com/documentation/embeds/tutorials/using-the-iframe-api)
+  instead of the Web API's `preview_url` field, which Spotify has made
+  unreliable (null for most tracks on most apps now). No extra OAuth scope
+  needed, works on free accounts. It lazily creates one embed controller and
+  redirects it (`loadUri` + `play`) to the new track whenever the front card
+  changes; the docked player bar at the bottom of the deck is the actual
+  Spotify-branded widget.
 - **`src/components/js/SwipeDeck.jsx`** — renders the current + next card as a
-  stack, auto-plays each new card's preview as it comes to the front (falls
-  back to tap-to-play if the browser blocks autoplay before you've interacted
-  with the page), wires up the buttons/keyboard shortcuts (← skip, → like), and saves
+  stack, wires up the buttons/keyboard shortcuts (← skip, → like), and saves
   liked tracks to the user's library via `addToMySavedTracks` when a swipe
   lands.
 - **`src/App.js`** — handles the OAuth redirect (code exchange), persists
@@ -83,8 +88,14 @@ button-only recommendation list were removed in favor of the swipe deck.
 
 ## Known limitations
 
-- Spotify has been rolling back `preview_url` availability across the
-  catalog, so the in-card play button won't show up for every song.
+- Browsers block audio autoplay without a user gesture, so the very first
+  card of a session may need one manual play tap on the embedded player
+  before playback starts automatically for the rest of the session.
+- After adding a new OAuth scope, Spotify can silently reuse an old consent
+  and skip re-prompting, so a token issued before a scope existed won't
+  actually have it. Login always forces the consent screen
+  (`show_dialog=true`) to avoid this, but if you ever see permission errors
+  on API calls, log out and back in.
 
 ## Available scripts
 

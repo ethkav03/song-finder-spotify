@@ -26,6 +26,18 @@ function isAuthError(err) {
     return err?.status === 401 || err?.xhr?.status === 401;
 }
 
+// spotify-web-api-js rejects with the raw XMLHttpRequest, not a parsed
+// error - pull Spotify's {error: {status, message}} body out of it so
+// failures are debuggable instead of a generic "something went wrong".
+function describeApiError(err) {
+    try {
+        const body = JSON.parse(err.responseText);
+        return body?.error?.message || `HTTP ${err.status}`;
+    } catch {
+        return err?.status ? `HTTP ${err.status}` : 'network error';
+    }
+}
+
 // Manages a continuously-refilling queue of tracks pulled from the catalog
 // search, deduplicated against everything already shown this session.
 export default function useSwipeQueue({ onAuthError } = {}) {
@@ -113,7 +125,7 @@ export default function useSwipeQueue({ onAuthError } = {}) {
 
     useEffect(() => {
         if (!saveError) return;
-        const timer = setTimeout(() => setSaveError(''), 3000);
+        const timer = setTimeout(() => setSaveError(''), 6000);
         return () => clearTimeout(timer);
     }, [saveError]);
 
@@ -128,7 +140,7 @@ export default function useSwipeQueue({ onAuthError } = {}) {
                         onAuthError?.();
                     } else {
                         console.error('Failed to save track', err);
-                        setSaveError("Couldn't save that song — check your connection.");
+                        setSaveError(`Couldn't save "${current.name}": ${describeApiError(err)}`);
                     }
                 });
             }

@@ -73,3 +73,13 @@
     font-size: 0.9rem;
     z-index: 5;
 }
+
+.swipe-deck__embed {
+    width: min(380px, 88vw);
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.swipe-deck__embed iframe {
+    border-radius: 12px;
+}

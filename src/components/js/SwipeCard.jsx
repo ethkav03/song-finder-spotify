@@ -7,10 +7,7 @@ const EXIT_DISTANCE = 600;
 // A single draggable recommendation card. Only the top card in the deck is
 // interactive (isTop); parent components can also trigger a swipe
 // programmatically (e.g. from Like/Nope buttons) via the forwarded ref.
-const SwipeCard = forwardRef(function SwipeCard(
-    { track, isTop, onExit, isPreviewPlaying, onTogglePreview },
-    ref
-) {
+const SwipeCard = forwardRef(function SwipeCard({ track, isTop, onExit }, ref) {
     const [pos, setPos] = useState({ x: 0, y: 0 });
     // Starts true so a card promoted from "behind" to "top" eases into the
     // centered position instead of snapping there instantly.
@@ -98,18 +95,6 @@ const SwipeCard = forwardRef(function SwipeCard(
                 {artUrl
                     ? <img src={artUrl} alt={track.name} draggable={false} />
                     : <div className="swipe-card__art-placeholder">♪</div>}
-
-                {isTop && track.preview_url && (
-                    <button
-                        type="button"
-                        className="swipe-card__preview-btn"
-                        onPointerDown={(e) => e.stopPropagation()}
-                        onClick={(e) => { e.stopPropagation(); onTogglePreview(); }}
-                        aria-label={isPreviewPlaying ? 'Pause preview' : 'Play preview'}
-                    >
-                        {isPreviewPlaying ? '⏸' : '▶'}
-                    </button>
-                )}
             </div>
 
             <div className="swipe-card__info">
